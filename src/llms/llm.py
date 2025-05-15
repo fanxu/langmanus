@@ -1,6 +1,9 @@
 from google.protobuf.any import is_type
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_deepseek import ChatDeepSeek
+from langchain_anthropic import ChatAnthropic
+from langchain_google_vertexai import ChatVertexAI
+from langchain_community.chat_models.tongyi import ChatTongyi
 from src.llms.litellm_v2 import ChatLiteLLMV2 as ChatLiteLLM
 from src.config import load_yaml_config
 from typing import Optional
@@ -10,111 +13,135 @@ from typing import Dict, Any
 
 from src.config import (
     REASONING_MODEL,
-    REASONING_BASE_URL,
-    REASONING_API_KEY,
     BASIC_MODEL,
-    BASIC_BASE_URL,
-    BASIC_API_KEY,
     VL_MODEL,
-    VL_BASE_URL,
-    VL_API_KEY,
-    AZURE_API_BASE,
-    AZURE_API_KEY,
-    AZURE_API_VERSION,
-    BASIC_AZURE_DEPLOYMENT,
-    VL_AZURE_DEPLOYMENT,
-    REASONING_AZURE_DEPLOYMENT,
 )
 from src.config.agents import LLMType
 
 
 def create_openai_llm(
     model: str,
-    base_url: Optional[str] = None,
-    api_key: Optional[str] = None,
     temperature: float = 0.0,
     **kwargs,
 ) -> ChatOpenAI:
     """
     Create a ChatOpenAI instance with the specified configuration
     """
-    # Only include base_url in the arguments if it's not None or empty
-    llm_kwargs = {"model": model, "temperature": temperature, **kwargs}
-
-    if base_url:  # This will handle None or empty string
-        llm_kwargs["base_url"] = base_url
-
-    if api_key:  # This will handle None or empty string
-        llm_kwargs["api_key"] = api_key
-
-    return ChatOpenAI(**llm_kwargs)
+    return ChatOpenAI(
+        model=model,
+        temperature=temperature,
+        streaming=True,
+        **kwargs,
+    )
 
 
 def create_deepseek_llm(
     model: str,
-    base_url: Optional[str] = None,
-    api_key: Optional[str] = None,
     temperature: float = 0.0,
     **kwargs,
 ) -> ChatDeepSeek:
     """
     Create a ChatDeepSeek instance with the specified configuration
     """
-    # Only include base_url in the arguments if it's not None or empty
-    llm_kwargs = {"model": model, "temperature": temperature, **kwargs}
-
-    if base_url:  # This will handle None or empty string
-        llm_kwargs["api_base"] = base_url
-
-    if api_key:  # This will handle None or empty string
-        llm_kwargs["api_key"] = api_key
-
-    return ChatDeepSeek(**llm_kwargs)
-
-
-def create_azure_llm(
-    azure_deployment: str,
-    azure_endpoint: str,
-    api_version: str,
-    api_key: str,
-    temperature: float = 0.0,
-) -> AzureChatOpenAI:
-    """
-    create azure llm instance with specified configuration
-    """
-    return AzureChatOpenAI(
-        azure_deployment=azure_deployment,
-        azure_endpoint=azure_endpoint,
-        api_version=api_version,
-        api_key=api_key,
+    return ChatDeepSeek(
+        model=model,
         temperature=temperature,
+        streaming=True,
+        **kwargs,
     )
 
 
-def create_litellm_model(
+def create_vertex_ai_llm(
     model: str,
-    base_url: Optional[str] = None,
-    api_key: Optional[str] = None,
     temperature: float = 0.0,
     **kwargs,
-) -> ChatLiteLLM:
+) -> ChatVertexAI:
     """
-    Support various different model's through LiteLLM's capabilities.
+    Create a ChatVertexAI instance with the specified configuration
+    """    
+    return ChatVertexAI(
+        model=model,
+        temperature=temperature,
+        streaming=True,
+        **kwargs,
+    )
+
+
+def create_anthropic_llm(
+    model: str,
+    temperature: float = 0.0,
+    **kwargs,
+) -> ChatAnthropic:
     """
+    Create a ChatAnthropic instance with the specified configuration
+    """
+    return ChatAnthropic(
+        model=model,
+        temperature=temperature,
+        streaming=True,
+        **kwargs,
+    )
 
-    llm_kwargs = {"model": model, "temperature": temperature, **kwargs}
 
-    if base_url:  # This will handle None or empty string
-        llm_kwargs["api_base"] = base_url
+def create_tongyi_llm(
+    model: str,
+    temperature: float = 0.0,
+    **kwargs,
+) -> ChatTongyi:
+    """
+    Create a ChatTongyi instance with the specified configuration
+    """
+    return ChatTongyi(
+        model=model,
+        temperature=temperature,
+        streaming=True,
+        **kwargs,
+    )
 
-    if api_key:  # This will handle None or empty string
-        llm_kwargs["api_key"] = api_key
 
-    return ChatLiteLLM(**llm_kwargs)
+# def create_azure_llm(
+#     azure_deployment: str,
+#     azure_endpoint: str,
+#     api_version: str,
+#     api_key: str,
+#     temperature: float = 0.0,
+# ) -> AzureChatOpenAI:
+#     """
+#     create azure llm instance with specified configuration
+#     """
+#     return AzureChatOpenAI(
+#         azure_deployment=azure_deployment,
+#         azure_endpoint=azure_endpoint,
+#         api_version=api_version,
+#         api_key=api_key,
+#         temperature=temperature,
+#     )
+
+
+# def create_litellm_model(
+#     model: str,
+#     base_url: Optional[str] = None,
+#     api_key: Optional[str] = None,
+#     temperature: float = 0.0,
+#     **kwargs,
+# ) -> ChatLiteLLM:
+#     """
+#     Support various different model's through LiteLLM's capabilities.
+#     """
+
+#     llm_kwargs = {"model": model, "temperature": temperature, **kwargs}
+
+#     if base_url:  # This will handle None or empty string
+#         llm_kwargs["api_base"] = base_url
+
+#     if api_key:  # This will handle None or empty string
+#         llm_kwargs["api_key"] = api_key
+
+#     return ChatLiteLLM(**llm_kwargs)
 
 
 # Cache for LLM instances
-_llm_cache: dict[LLMType, ChatOpenAI | ChatDeepSeek | AzureChatOpenAI | ChatLiteLLM] = (
+_llm_cache: dict[LLMType, ChatOpenAI | ChatDeepSeek | ChatAnthropic | ChatVertexAI | ChatTongyi] = (
     {}
 )
 
@@ -136,70 +163,75 @@ def is_litellm_model(model_name: str) -> bool:
     )
 
 
+def get_model_provider(model_name: str) -> tuple[str, str]:
+    """
+    Get the provider and name of the model
+    
+    Args:
+        model_name: The full model name in format "provider/model"
+        
+    Returns:
+        tuple: (provider, model_name)
+    """
+    parts = model_name.split("/", 1)
+    provider = parts[0]
+    model = parts[1] if len(parts) > 1 else ""
+    return provider, model
+
+
 def _create_llm_use_env(
     llm_type: LLMType,
-) -> ChatOpenAI | ChatDeepSeek | AzureChatOpenAI | ChatLiteLLM:
+) -> ChatOpenAI | ChatDeepSeek | ChatAnthropic | ChatVertexAI | ChatTongyi:
     if llm_type == "reasoning":
-        if REASONING_AZURE_DEPLOYMENT:
-            llm = create_azure_llm(
-                azure_deployment=REASONING_AZURE_DEPLOYMENT,
-                azure_endpoint=AZURE_API_BASE,
-                api_version=AZURE_API_VERSION,
-                api_key=AZURE_API_KEY,
-            )
-        elif is_litellm_model(REASONING_MODEL):
-            llm = create_litellm_model(
-                model=REASONING_MODEL,
-                base_url=REASONING_BASE_URL,
-                api_key=REASONING_API_KEY,
-            )
-        else:
+        model_provider, model_name = get_model_provider(REASONING_MODEL)
+        if model_provider == LlmProviders.DEEPSEEK:
             llm = create_deepseek_llm(
-                model=REASONING_MODEL,
-                base_url=REASONING_BASE_URL,
-                api_key=REASONING_API_KEY,
+                model=model_name,
             )
+        elif model_provider == LlmProviders.ANTHROPIC:
+            llm = create_anthropic_llm(
+                model=model_name,
+                # must set temperature to 1.0 to enable thinking
+                temperature=1.0,
+                max_tokens=4096,
+                thinking={"type": "enabled", "budget_tokens": 1024},
+            )
+        elif model_provider == "dashscope":
+            llm = create_tongyi_llm(
+                model=model_name,
+            )
+        else:
+            raise ValueError(f"LLM model not supported: {REASONING_MODEL}")
     elif llm_type == "basic":
-        if BASIC_AZURE_DEPLOYMENT:
-            print("===== use azure ====")
-            llm = create_azure_llm(
-                azure_deployment=BASIC_AZURE_DEPLOYMENT,
-                azure_endpoint=AZURE_API_BASE,
-                api_version=AZURE_API_VERSION,
-                api_key=AZURE_API_KEY,
+        model_provider, model_name = get_model_provider(BASIC_MODEL)
+        if model_provider == LlmProviders.OPENAI:
+            llm = create_openai_llm(
+                model=model_name,
             )
-        elif is_litellm_model(BASIC_MODEL):
-            llm = create_litellm_model(
-                model=BASIC_MODEL,
-                base_url=BASIC_BASE_URL,
-                api_key=BASIC_API_KEY,
+        elif model_provider == LlmProviders.VERTEX_AI:
+            llm = create_vertex_ai_llm(
+                model=model_name,
+                # thinking_budget=None,
+            )
+        elif model_provider == "anthropic":
+            llm = create_anthropic_llm(
+                model=model_name,
             )
         else:
-            llm = create_openai_llm(
-                model=BASIC_MODEL,
-                base_url=BASIC_BASE_URL,
-                api_key=BASIC_API_KEY,
-            )
+            raise ValueError(f"LLM model not supported: {BASIC_MODEL}")
     elif llm_type == "vision":
-        if VL_AZURE_DEPLOYMENT:
-            llm = create_azure_llm(
-                azure_deployment=BASIC_AZURE_DEPLOYMENT,
-                azure_endpoint=AZURE_API_BASE,
-                api_version=AZURE_API_VERSION,
-                api_key=AZURE_API_KEY,
+        model_provider, model_name = get_model_provider(VL_MODEL)
+        if model_provider == LlmProviders.OPENAI:
+            llm = create_openai_llm(
+                model=model_name,
             )
-        elif is_litellm_model(VL_MODEL):
-            llm = create_litellm_model(
-                model=VL_MODEL,
-                base_url=VL_BASE_URL,
-                api_key=VL_API_KEY,
+        elif model_provider == LlmProviders.VERTEX_AI:
+            llm = create_vertex_ai_llm(
+                model=model_name,
+                thinking_budget=None,
             )
         else:
-            llm = create_openai_llm(
-                model=VL_MODEL,
-                base_url=VL_BASE_URL,
-                api_key=VL_API_KEY,
-            )
+            raise ValueError(f"LLM model not supported: {VL_MODEL}")
     else:
         raise ValueError(f"Unknown LLM type: {llm_type}")
     return llm
