@@ -31,6 +31,7 @@ def create_openai_llm(
         model=model,
         temperature=temperature,
         streaming=True,
+        stream_usage=True,
         **kwargs,
     )
 
