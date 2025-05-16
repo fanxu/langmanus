@@ -80,6 +80,7 @@ def create_anthropic_llm(
         model=model,
         temperature=temperature,
         streaming=True,
+        max_tokens=4096,
         **kwargs,
     )
 

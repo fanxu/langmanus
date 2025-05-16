@@ -23,6 +23,24 @@ logger = logging.getLogger(__name__)
 RESPONSE_FORMAT = "Response from {}:\n\n<response>\n{}\n</response>\n\n*Please execute the next step.*"
 
 
+def _prepare_response_content_string(raw_response_content: any) -> str:
+    """Prepares raw response content into a single string for JSON repair."""
+    if isinstance(raw_response_content, list):
+        texts = []
+        for item in raw_response_content:
+            if isinstance(item, dict) and 'text' in item and isinstance(item.get('text'), str):
+                texts.append(item['text'])
+            # Optionally, handle other list item types here if needed, e.g., simple strings
+            # elif isinstance(item, str):
+            #     texts.append(item)
+        return "\n".join(texts)
+    elif isinstance(raw_response_content, str):
+        return raw_response_content
+    else:
+        # Fallback for other types, convert to string
+        return str(raw_response_content)
+
+
 @tool
 async def handoff_to_planner():
     """Handoff to planner agent to do plan."""
@@ -36,7 +54,8 @@ async def research_node(state: State) -> Command[Literal["supervisor"]]:
     logger.info("Research agent starting task")
     result = await research_agent.ainvoke(state)
     logger.info("Research agent completed task")
-    response_content = result["messages"][-1].content
+    raw_response_content = result["messages"][-1].content
+    response_content = _prepare_response_content_string(raw_response_content)
     # 尝试修复可能的JSON输出
     response_content = repair_json_output(response_content)
     logger.debug(f"Research agent response: {response_content}")
@@ -58,7 +77,8 @@ async def code_node(state: State) -> Command[Literal["supervisor"]]:
     logger.info("Code agent starting task")
     result = await coder_agent.ainvoke(state)
     logger.info("Code agent completed task")
-    response_content = result["messages"][-1].content
+    raw_response_content = result["messages"][-1].content
+    response_content = _prepare_response_content_string(raw_response_content)
     # 尝试修复可能的JSON输出
     response_content = repair_json_output(response_content)
     logger.debug(f"Code agent response: {response_content}")
@@ -80,7 +100,8 @@ async def browser_node(state: State) -> Command[Literal["supervisor"]]:
     logger.info("Browser agent starting task")
     result = await browser_agent.ainvoke(state)
     logger.info("Browser agent completed task")
-    response_content = result["messages"][-1].content
+    raw_response_content = result["messages"][-1].content
+    response_content = _prepare_response_content_string(raw_response_content)
     # 尝试修复可能的JSON输出
     response_content = repair_json_output(response_content)
     logger.debug(f"Browser agent response: {response_content}")
@@ -192,7 +213,8 @@ async def reporter_node(state: State) -> Command[Literal["supervisor"]]:
     messages = apply_prompt_template("reporter", state)
     response = await get_llm_by_type(AGENT_LLM_MAP["reporter"]).ainvoke(messages)
     logger.debug(f"Current state messages: {state['messages']}")
-    response_content = response.content
+    raw_response_content = response.content
+    response_content = _prepare_response_content_string(raw_response_content)
     # 尝试修复可能的JSON输出
     response_content = repair_json_output(response_content)
     logger.debug(f"reporter response: {response_content}")
