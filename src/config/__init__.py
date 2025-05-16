@@ -41,17 +41,17 @@ TEAM_MEMBER_CONFIGRATIONS = {
         ),
         "is_optional": False,
     },
-    "coder": {
-        "name": "coder",
-        "desc": (
-            "Responsible for code implementation, debugging and optimization, handling technical programming tasks"
-        ),
-        "desc_for_llm": (
-            "Executes Python or Bash commands, performs mathematical calculations, and outputs a Markdown report. "
-            "Must be used for all mathematical computations."
-        ),
-        "is_optional": True,
-    },
+    # "coder": {
+    #     "name": "coder",
+    #     "desc": (
+    #         "Responsible for code implementation, debugging and optimization, handling technical programming tasks"
+    #     ),
+    #     "desc_for_llm": (
+    #         "Executes Python or Bash commands, performs mathematical calculations, and outputs a Markdown report. "
+    #         "Must be used for all mathematical computations."
+    #     ),
+    #     "is_optional": True,
+    # },
     "browser": {
         "name": "browser",
         "desc": "Responsible for web browsing, content extraction and interaction",
