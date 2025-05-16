@@ -195,7 +195,6 @@ def _create_llm_use_env(
                 model=model_name,
                 # must set temperature to 1.0 to enable thinking
                 temperature=1.0,
-                max_tokens=4096,
                 thinking={"type": "enabled", "budget_tokens": 1024},
             )
         elif model_provider == "dashscope":

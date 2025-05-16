@@ -167,7 +167,7 @@ async def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]
     stream = llm.astream(messages)
     full_response = ""
     async for chunk in stream:
-        full_response += chunk.content
+        full_response += _prepare_response_content_string(chunk.content)
     logger.debug(f"Current state messages: {state['messages']}")
     logger.debug(f"Planner response: {full_response}")
 
