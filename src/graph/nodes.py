@@ -24,17 +24,17 @@ RESPONSE_FORMAT = "Response from {}:\n\n<response>\n{}\n</response>\n\n*Please e
 
 
 @tool
-def handoff_to_planner():
+async def handoff_to_planner():
     """Handoff to planner agent to do plan."""
     # This tool is not returning anything: we're just using it
     # as a way for LLM to signal that it needs to hand off to planner agent
     return
 
 
-def research_node(state: State) -> Command[Literal["supervisor"]]:
+async def research_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the researcher agent that performs research tasks."""
     logger.info("Research agent starting task")
-    result = research_agent.invoke(state)
+    result = await research_agent.ainvoke(state)
     logger.info("Research agent completed task")
     response_content = result["messages"][-1].content
     # 尝试修复可能的JSON输出
@@ -53,10 +53,10 @@ def research_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-def code_node(state: State) -> Command[Literal["supervisor"]]:
+async def code_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the coder agent that executes Python code."""
     logger.info("Code agent starting task")
-    result = coder_agent.invoke(state)
+    result = await coder_agent.ainvoke(state)
     logger.info("Code agent completed task")
     response_content = result["messages"][-1].content
     # 尝试修复可能的JSON输出
@@ -75,10 +75,10 @@ def code_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-def browser_node(state: State) -> Command[Literal["supervisor"]]:
+async def browser_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the browser agent that performs web browsing tasks."""
     logger.info("Browser agent starting task")
-    result = browser_agent.invoke(state)
+    result = await browser_agent.ainvoke(state)
     logger.info("Browser agent completed task")
     response_content = result["messages"][-1].content
     # 尝试修复可能的JSON输出
@@ -97,7 +97,7 @@ def browser_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
-def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
+async def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
     """Supervisor node that decides which agent should act next."""
     logger.info("Supervisor evaluating next action")
     messages = apply_prompt_template("supervisor", state)
@@ -106,10 +106,10 @@ def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
     for message in messages:
         if isinstance(message, BaseMessage) and message.name in TEAM_MEMBERS:
             message.content = RESPONSE_FORMAT.format(message.name, message.content)
-    response = (
+    response = await (
         get_llm_by_type(AGENT_LLM_MAP["supervisor"])
         .with_structured_output(schema=Router, method="json_mode")
-        .invoke(messages)
+        .ainvoke(messages)
     )
     goto = response["next"]
     logger.debug(f"Current state messages: {state['messages']}")
@@ -124,7 +124,7 @@ def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
     return Command(goto=goto, update={"next": goto})
 
 
-def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
+async def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
     """Planner node that generate the full plan."""
     logger.info("Planner generating full plan")
     messages = apply_prompt_template("planner", state)
@@ -133,7 +133,7 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
     if state.get("deep_thinking_mode"):
         llm = get_llm_by_type("reasoning")
     if state.get("search_before_planning"):
-        searched_content = tavily_tool.invoke({"query": state["messages"][-1].content})
+        searched_content = await tavily_tool.ainvoke({"query": state["messages"][-1].content})
         if isinstance(searched_content, list):
             messages = deepcopy(messages)
             messages[
@@ -143,9 +143,9 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
             logger.error(
                 f"Tavily search returned malformed response: {searched_content}"
             )
-    stream = llm.stream(messages)
+    stream = llm.astream(messages)
     full_response = ""
-    for chunk in stream:
+    async for chunk in stream:
         full_response += chunk.content
     logger.debug(f"Current state messages: {state['messages']}")
     logger.debug(f"Planner response: {full_response}")
@@ -166,14 +166,14 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
     )
 
 
-def coordinator_node(state: State) -> Command[Literal["planner", "__end__"]]:
+async def coordinator_node(state: State) -> Command[Literal["planner", "__end__"]]:
     """Coordinator node that communicate with customers."""
     logger.info("Coordinator talking.")
     messages = apply_prompt_template("coordinator", state)
-    response = (
+    response = await (
         get_llm_by_type(AGENT_LLM_MAP["coordinator"])
         .bind_tools([handoff_to_planner])
-        .invoke(messages)
+        .ainvoke(messages)
     )
     logger.debug(f"Current state messages: {state['messages']}")
 
@@ -186,11 +186,11 @@ def coordinator_node(state: State) -> Command[Literal["planner", "__end__"]]:
     )
 
 
-def reporter_node(state: State) -> Command[Literal["supervisor"]]:
+async def reporter_node(state: State) -> Command[Literal["supervisor"]]:
     """Reporter node that write a final report."""
     logger.info("Reporter write final report")
     messages = apply_prompt_template("reporter", state)
-    response = get_llm_by_type(AGENT_LLM_MAP["reporter"]).invoke(messages)
+    response = await get_llm_by_type(AGENT_LLM_MAP["reporter"]).ainvoke(messages)
     logger.debug(f"Current state messages: {state['messages']}")
     response_content = response.content
     # 尝试修复可能的JSON输出
