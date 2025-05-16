@@ -1,4 +1,5 @@
 import sys
+import asyncio
 
 from .article import Article
 from .jina_client import JinaClient
@@ -6,7 +7,7 @@ from .readability_extractor import ReadabilityExtractor
 
 
 class Crawler:
-    def crawl(self, url: str) -> Article:
+    async def crawl(self, url: str) -> Article:
         # To help LLMs better understand content, we extract clean
         # articles from HTML, convert them to markdown, and split
         # them into text and image blocks for one single and unified
@@ -18,9 +19,9 @@ class Crawler:
         # Instead of using Jina's own markdown converter, we'll use
         # our own solution to get better readability results.
         jina_client = JinaClient()
-        html = jina_client.crawl(url, return_format="html")
+        html = await asyncio.to_thread(jina_client.crawl, url, return_format="html")
         extractor = ReadabilityExtractor()
-        article = extractor.extract_article(html)
+        article = await asyncio.to_thread(extractor.extract_article, html)
         article.url = url
         return article
 
@@ -30,6 +31,10 @@ if __name__ == "__main__":
         url = sys.argv[1]
     else:
         url = "https://fintel.io/zh-hant/s/br/nvdc34"
-    crawler = Crawler()
-    article = crawler.crawl(url)
-    print(article.to_markdown())
+    
+    async def main():
+        crawler = Crawler()
+        article = await crawler.crawl(url)
+        print(article.to_markdown())
+
+    asyncio.run(main())

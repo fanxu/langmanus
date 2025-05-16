@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 @tool
 @log_io
-def crawl_tool(
+async def crawl_tool(
     url: Annotated[str, "The url to crawl."],
 ) -> HumanMessage:
     """Use this to crawl a url and get a readable content in markdown format."""
     try:
         crawler = Crawler()
-        article = crawler.crawl(url)
+        article = await crawler.crawl(url)
         return {"role": "user", "content": article.to_message()}
     except BaseException as e:
         error_msg = f"Failed to crawl. Error: {repr(e)}"
